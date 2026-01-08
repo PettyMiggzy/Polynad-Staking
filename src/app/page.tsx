@@ -64,7 +64,11 @@ export default function Home() {
         functionName: "activeStakers",
       },
     ],
-    watch: true,
+    // ✅ wagmi v2 typing-safe replacement for watch
+    query: {
+      refetchInterval: 15_000, // refresh every 15s
+      refetchOnWindowFocus: true,
+    },
   });
 
   const totalStakedRaw = (data?.[0]?.result ?? 0n) as bigint;
@@ -109,7 +113,7 @@ export default function Home() {
               <div className="text-xs text-white/60">Polynad Staking</div>
             </div>
 
-            {/* ✅ ONLY MARKETS — DASHBOARD REMOVED */}
+            {/* ONLY MARKETS */}
             <nav className="ml-6 hidden items-center gap-6 md:flex">
               <a
                 className="text-sm text-white/70 hover:text-white"
@@ -195,7 +199,11 @@ export default function Home() {
             value={isLoading ? "Loading…" : rewardPool}
             sub="POLYNAD"
           />
-          <StatCard title="Active Stakers" value={isLoading ? "…" : activeStakers} sub="Wallets" />
+          <StatCard
+            title="Active Stakers"
+            value={isLoading ? "…" : activeStakers}
+            sub="Wallets"
+          />
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -226,7 +234,7 @@ export default function Home() {
             </span>
           </div>
 
-          {/* Lock Options */}
+          {/* Lock Options (UI only for now) */}
           <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
             {[
               { label: "30 Days", value: "30d" },
@@ -286,10 +294,9 @@ export default function Home() {
         </div>
 
         <footer className="mt-10 text-center text-xs text-white/40">
-          Polynad Staking • Monad (143).
+          Polynad Staking • Monad (143)
         </footer>
       </section>
     </main>
   );
 }
-
