@@ -2,9 +2,13 @@
 
 import Image from "next/image";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useAccount } from "wagmi";
+import { useAccount, useReadContracts } from "wagmi";
+import { formatUnits } from "viem";
 
-const TOKEN = "0x8b194601E648BD96c13A8Ddc4AdB8CDfaFc67777";
+import { stakingAbi } from "@/lib/stakingAbi";
+import { STAKING_ADDRESS, TOKEN_DECIMALS, POLYNAD_ADDRESS } from "@/lib/staking";
+
+const TOKEN = POLYNAD_ADDRESS;
 const NAD_LINK = `https://nad.fun/tokens/${TOKEN}`;
 
 function Pill({ children }: { children: React.ReactNode }) {
@@ -33,19 +37,47 @@ function Stat({
   );
 }
 
+function fmt(num: string, decimals = 2) {
+  // safe formatting for big values
+  const n = Number(num);
+  if (!Number.isFinite(n)) return "0";
+  return n.toLocaleString(undefined, {
+    maximumFractionDigits: decimals,
+  });
+}
+
 export default function Home() {
   const { isConnected, address } = useAccount();
 
-  // mock for now
-  const stats = {
-    price: "$0.02168",
-    change: "-4.41%",
-    mcap: "$21.68K",
-    vol24h: "$7.61K",
-    liq: "$10.88K",
-    totalStaked: "8,420,000",
-    rewardPool: "420,000",
-    lock: "14 days",
+  // READ-ONLY on-chain metrics (safe for Vercel, no server routes)
+  const { data, isLoading } = useReadContracts({
+    allowFailure: true,
+    contracts: [
+      { address: STAKING_ADDRESS as `0x${string}`, abi: stakingAbi, functionName: "rewardPool" },
+      { address: STAKING_ADDRESS as `0x${string}`, abi: stakingAbi, functionName: "totalStaked" },
+      { address: STAKING_ADDRESS as `0x${string}`, abi: stakingAbi, functionName: "totalStakedAllTime" },
+      { address: STAKING_ADDRESS as `0x${string}`, abi: stakingAbi, functionName: "activeStakers" },
+    ],
+    watch: true,
+  });
+
+  const rewardPoolRaw = (data?.[0]?.result ?? 0n) as bigint;
+  const totalStakedRaw = (data?.[1]?.result ?? 0n) as bigint;
+  const totalAllTimeRaw = (data?.[2]?.result ?? 0n) as bigint;
+  const activeStakersRaw = (data?.[3]?.result ?? 0n) as bigint;
+
+  const rewardPool = fmt(formatUnits(rewardPoolRaw, TOKEN_DECIMALS), 2);
+  const totalStaked = fmt(formatUnits(totalStakedRaw, TOKEN_DECIMALS), 2);
+  const totalAllTime = fmt(formatUnits(totalAllTimeRaw, TOKEN_DECIMALS), 2);
+  const activeStakers = Number(activeStakersRaw).toLocaleString();
+
+  // You can replace these later with real market data (DexScreener etc.)
+  const market = {
+    price: "$—",
+    change: "—",
+    mcap: "—",
+    vol24h: "—",
+    liq: "—",
   };
 
   return (
@@ -80,7 +112,12 @@ export default function Home() {
             </div>
 
             <nav className="ml-6 hidden items-center gap-6 md:flex">
-              <a className="text-sm text-white/70 hover:text-white" href="https://v0-polynad.vercel.app/" target="_blank" rel="noreferrer">
+              <a
+                className="text-sm text-white/70 hover:text-white"
+                href="https://v0-polynad.vercel.app/"
+                target="_blank"
+                rel="noreferrer"
+              >
                 Markets
               </a>
               <span className="text-sm text-white/30">Dashboard</span>
@@ -98,21 +135,26 @@ export default function Home() {
                 <Image src="/logo.png" alt="logo" fill className="object-cover" />
               </div>
               <span className="font-semibold">POLYNAD</span>
-              <span className="text-white/80">{stats.price}</span>
-              <span className="text-red-400">{stats.change}</span>
+              <span className="text-white/80">{market.price}</span>
+              <span className="text-white/60">{market.change}</span>
             </div>
 
             <div className="hidden items-center gap-5 text-white/75 md:flex">
               <span>
-                MCap: <span className="text-white">{stats.mcap}</span>
+                MCap: <span className="text-white">{market.mcap}</span>
               </span>
               <span>
-                Vol 24h: <span className="text-white">{stats.vol24h}</span>
+                Vol 24h: <span className="text-white">{market.vol24h}</span>
               </span>
               <span>
-                Liquidity: <span className="text-white">{stats.liq}</span>
+                Liquidity: <span className="text-white">{market.liq}</span>
               </span>
-              <a className="text-purple-300 hover:text-purple-200" href="https://v0-polynad.vercel.app/" target="_blank" rel="noreferrer">
+              <a
+                className="text-purple-300 hover:text-purple-200"
+                href="https://v0-polynad.vercel.app/"
+                target="_blank"
+                rel="noreferrer"
+              >
                 View Chart
               </a>
             </div>
@@ -134,8 +176,11 @@ export default function Home() {
 
             <div className="mt-5 flex flex-wrap gap-2">
               <Pill>Monad • Chain 143</Pill>
-              <Pill>Lock: {stats.lock}</Pill>
-              <Pill>Token: {TOKEN.slice(0, 8)}…{TOKEN.slice(-6)}</Pill>
+              <Pill>Lock: 14 days</Pill>
+              <Pill>Penalty: 10%</Pill>
+              <Pill>
+                Staking CA: {STAKING_ADDRESS.slice(0, 6)}…{STAKING_ADDRESS.slice(-4)}
+              </Pill>
             </div>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -147,6 +192,7 @@ export default function Home() {
               >
                 Get $POLYNAD
               </a>
+
               <a
                 href="https://v0-polynad.vercel.app/"
                 target="_blank"
@@ -159,22 +205,38 @@ export default function Home() {
           </div>
         </div>
 
-        {/* stats */}
+        {/* LIVE staking stats (your requested visuals) */}
         <div className="mt-10 grid gap-3 md:grid-cols-4">
-          <Stat label="Total Staked" value={stats.totalStaked} sub="POLYNAD" />
-          <Stat label="Reward Pool" value={stats.rewardPool} sub="POLYNAD" />
-          <Stat label="Lock" value={stats.lock} sub="Rewards after lock" />
-          <Stat label="Early Unstake" value="10%" sub="Penalty returns to pool" />
+          <Stat
+            label="Reward Pool"
+            value={isLoading ? "Loading…" : rewardPool}
+            sub="POLYNAD in pool"
+          />
+          <Stat
+            label="Currently Staked"
+            value={isLoading ? "Loading…" : totalStaked}
+            sub="POLYNAD staked now"
+          />
+          <Stat
+            label="Total Staked (All-Time)"
+            value={isLoading ? "Loading…" : totalAllTime}
+            sub="Lifetime deposits"
+          />
+          <Stat
+            label="Active Stakers"
+            value={isLoading ? "Loading…" : activeStakers}
+            sub="Wallets staking"
+          />
         </div>
 
-        {/* staking panel */}
+        {/* staking panel (buttons still UI-only for now) */}
         <div className="mt-8 grid gap-6 lg:grid-cols-3">
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 lg:col-span-2">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-lg font-semibold">Stake</div>
                 <div className="mt-1 text-sm text-white/60">
-                  Wiring to contract comes next — UI is ready.
+                  Read-only metrics are live. Next we wire stake/unstake actions.
                 </div>
               </div>
               <Pill>Early unstake forfeits rewards</Pill>
@@ -189,18 +251,27 @@ export default function Home() {
                   disabled={!isConnected}
                 />
                 <div className="mt-2 text-xs text-white/50">
-                  {isConnected ? "Connected — ready." : "Connect wallet to enable staking."}
+                  {isConnected ? "Connected — ready for wiring." : "Connect wallet to enable staking."}
                 </div>
               </div>
 
               <div className="grid gap-2">
-                <button className="rounded-xl bg-purple-600 px-4 py-3 text-sm font-semibold hover:bg-purple-500 disabled:opacity-40" disabled={!isConnected}>
+                <button
+                  className="rounded-xl bg-purple-600 px-4 py-3 text-sm font-semibold hover:bg-purple-500 disabled:opacity-40"
+                  disabled={!isConnected}
+                >
                   Stake
                 </button>
-                <button className="rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-semibold hover:bg-white/15 disabled:opacity-40" disabled={!isConnected}>
+                <button
+                  className="rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-semibold hover:bg-white/15 disabled:opacity-40"
+                  disabled={!isConnected}
+                >
                   Unstake
                 </button>
-                <button className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-200 hover:bg-red-500/15 disabled:opacity-40" disabled={!isConnected}>
+                <button
+                  className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-200 hover:bg-red-500/15 disabled:opacity-40"
+                  disabled={!isConnected}
+                >
                   Early Unstake (10%)
                 </button>
               </div>
@@ -218,7 +289,7 @@ export default function Home() {
             <div className="mt-5 grid gap-3">
               <Stat label="Your Stake" value="—" sub="POLYNAD" />
               <Stat label="Time Remaining" value="—" sub="Lock countdown" />
-              <Stat label="Rewards" value="—" sub="Only after lock ends" />
+              <Stat label="Rewards" value="—" sub="Early unstake = 0" />
             </div>
           </div>
         </div>
