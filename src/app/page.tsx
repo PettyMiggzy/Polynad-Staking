@@ -286,9 +286,10 @@ export default function Home() {
         </div>
 
         <footer className="mt-10 text-center text-xs text-white/40">
-          Polynad Staking • Monad (143)
+          Polynad Staking • Monad (143).
         </footer>
       </section>
     </main>
   );
 }
+
