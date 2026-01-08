@@ -9,9 +9,6 @@ export const monad = defineChain({
     public: { http: ["https://rpc.monad.xyz"] },
   },
   blockExplorers: {
-    default: {
-      name: "Monad Explorer",
-      url: "https://explorer.monad.xyz", // if your explorer differs, change this URL only
-    },
+    default: { name: "MonadScan", url: "https://monadscan.com" },
   },
 });
