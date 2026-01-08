@@ -71,10 +71,10 @@ export default function Home() {
     },
   });
 
-  const totalStakedRaw = (data?.[0]?.result ?? 0n) as bigint;
-  const rewardPoolRaw = (data?.[1]?.result ?? 0n) as bigint;
-  const totalAllTimeRaw = (data?.[2]?.result ?? 0n) as bigint;
-  const activeStakersRaw = (data?.[3]?.result ?? 0n) as bigint;
+  const totalStakedRaw = (data?.[0]?.result ?? BigInt(0)) as bigint;
+const rewardPoolRaw = (data?.[1]?.result ?? BigInt(0)) as bigint;
+const totalAllTimeRaw = (data?.[2]?.result ?? BigInt(0)) as bigint;
+const activeStakersRaw = (data?.[3]?.result ?? BigInt(0)) as bigint;
 
   const totalStaked = fmt(formatUnits(totalStakedRaw, TOKEN_DECIMALS), 2);
   const rewardPool = fmt(formatUnits(rewardPoolRaw, TOKEN_DECIMALS), 2);
