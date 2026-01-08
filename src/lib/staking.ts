@@ -4,5 +4,7 @@ export const STAKING_ADDRESS =
 export const POLYNAD_ADDRESS =
   "0x8b194601E648BD96c13A8Ddc4AdB8CDfaFc67777";
 
-export const CHAIN_ID = 143;
 export const TOKEN_DECIMALS = 18;
+export const CHAIN_ID = 143;
+
+export const NAD_LINK = `https://nad.fun/tokens/${POLYNAD_ADDRESS}`;
